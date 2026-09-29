@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RedSpider Bank - Mi cuenta</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #1E3A8A, #0a0f2e);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h2 { margin: 0; font-size: 20px; }
+  header h2 span { color: #ff6b6b; }
+  .cerrar {
+    background: #E23636;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .contenedor {
+    max-width: 700px;
+    margin: 30px auto;
+    padding: 0 20px;
+  }
+  .saldo-card {
+    background: linear-gradient(135deg, #E23636, #b91c1c);
+    color: white;
+    border-radius: 16px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 25px rgba(226,54,54,0.3);
+  }
+  .saldo-card p { margin: 0; opacity: 0.85; font-size: 13px; }
+  .saldo-card h1 { margin: 5px 0 0; font-size: 36px; }
+
+  .tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px;
+    background: white;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1E3A8A;
+    font-size: 14px;
+  }
+  .tab-btn.activo {
+    background: #1E3A8A;
+    color: white;
+    border-color: #1E3A8A;
+  }
+
+  .panel {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    display: none;
+  }
+  .panel.activo { display: block; }
+  .panel h3 { margin-top: 0; color: #1E3A8A; }
+
+  label { font-size: 13px; font-weight: 600; color: #1E3A8A; display:block; margin-bottom: 5px;}
+  input {
+    width: 100%;
+    padding: 11px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 14px;
+    font-size: 14px;
+  }
+  button.accion {
+    background: #E23636;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+  }
+  #resultado { margin-top: 12px; font-size: 13px; }
+  .credito-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+  .estado {
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    background: #fef3c7;
+    color: #92400e;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h2>🕸️ Red<span>Spider</span> Bank</h2>
+  <button class="cerrar" onclick="window.location.href='/'">Salir</button>
+</header>
+
+<div class="contenedor">
+  <div class="saldo-card">
+    <p id="nombreUsuario">Hola...</p>
+    <p>Saldo disponible</p>
+    <h1 id="saldo">$0</h1>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn activo" onclick="mostrar('transferir')">Transferir</button>
+    <button class="tab-btn" onclick="mostrar('creditos')">Créditos</button>
+  </div>
+
+  <div class="panel activo" id="panel-transferir">
+    <h3>Transferir dinero</h3>
+    <label>Cuenta destino</label>
+    <input type="number" id="destino" placeholder="ID de cuenta destino">
+    <label>Banco destino</label>
+    <input type="text" id="bancoDestino" value="RedSpider Bank">
+    <label>Monto</label>
+    <input type="number" id="montoTransf" placeholder="0">
+    <button class="accion" onclick="transferir()">Enviar dinero</button>
+    <div id="resultado"></div>
+  </div>
+
+  <div class="panel" id="panel-creditos">
+    <h3>Solicitar crédito</h3>
+    <label>Monto solicitado</label>
+    <input type="number" id="montoCredito" placeholder="0">
+    <label>Plazo (meses)</label>
+    <input type="number" id="plazo" placeholder="12">
+    <button class="accion" onclick="solicitarCredito()">Solicitar</button>
+    <div id="resultadoCredito"></div>
+    <h3 style="margin-top:25px;">Mis créditos</h3>
+    <div id="listaCreditos"></div>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const usuarioId = params.get('usuario_id');
+let cuentaId = null;
+
+async function cargarCuenta() {
+  const res = await fetch(`/cuenta/${usuarioId}`);
+  const data = await res.json();
+  if (res.ok) {
+    cuentaId = data.cuenta_id;
+    document.getElementById('nombreUsuario').innerText = `Hola, ${data.nombre}`;
+    document.getElementById('saldo').innerText = `$${data.saldo.toLocaleString('es-CO')}`;
+  }
+}
+
+function mostrar(panel) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('activo'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+  document.getElementById(`panel-${panel}`).classList.add('activo');
+  event.target.classList.add('activo');
+  if (panel === 'creditos') cargarCreditos();
+}
+
+async function transferir() {
+  const destino = document.getElementById('destino').value;
+  const bancoDestino = document.getElementById('bancoDestino').value;
+  const monto = parseFloat(document.getElementById('montoTransf').value);
+  const resultado = document.getElementById('resultado');
+
+  const res = await fetch('/transferir', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ origen: cuentaId, destino: parseInt(destino), monto, banco_destino: bancoDestino })
+  });
+  const data = await res.json();
+  if (res.ok) {
+    resultado.style.color = 'green';
+    resultado.innerText = '✅ Transferencia realizada con éxito';
+    cargarCuenta();
+  } else {
+    resultado.style.color = '#E23636';
+    resultado.innerText = data.detail || 'Error en la transferencia';
+  }
+}
+
+async function solicitarCredito() {
+  const monto = parseFloat(document.getElementById('montoCredito').value);
+  const plazo = parseInt(document.getElementById('plazo').value);
+  const resultado = document.getElementById('resultadoCredito');
+
+  const res = await fetch('/creditos/solicitar', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ usuario_id: parseInt(usuarioId), monto, plazo_meses: plazo })
+  });
+  const data = await res.json();
+  if (res.ok) {
+    resultado.style.color = 'green';
+    resultado.innerText = '✅ Solicitud enviada, queda pendiente de revisión';
+    cargarCreditos();
+  } else {
+    resultado.style.color = '#E23636';
+    resultado.innerText = data.detail || 'Error al solicitar';
+  }
+}
+
+async function cargarCreditos() {
+  const res = await fetch(`/creditos/${usuarioId}`);
+  const data = await res.json();
+  const lista = document.getElementById('listaCreditos');
+  lista.innerHTML = data.map(c => `
+    <div class="credito-item">
+      <span>$${c.monto.toLocaleString('es-CO')} a ${c.plazo_meses} meses</span>
+      <span class="estado">${c.estado}</span>
+    </div>
+  `).join('') || '<p style="color:#94a3b8;font-size:13px;">No tienes créditos solicitados</p>';
+}
+
+cargarCuenta();
+</script>
+</body>
+</html>

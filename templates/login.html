@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RedSpider Bank</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1E3A8A 0%, #0a0f2e 70%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  .telaraña {
+    position: absolute;
+    opacity: 0.15;
+    stroke: #ffffff;
+  }
+  .tl1 { top: -60px; left: -60px; width: 260px; }
+  .tl2 { top: -60px; right: -60px; width: 260px; transform: scaleX(-1); }
+  .tl3 { bottom: -80px; left: -40px; width: 220px; transform: rotate(180deg); }
+  .tl4 { bottom: -80px; right: -40px; width: 220px; transform: rotate(180deg) scaleX(-1); }
+
+  .arania {
+    position: absolute;
+    font-size: 22px;
+    animation: bajar 6s ease-in-out infinite;
+    opacity: 0.5;
+  }
+  .a1 { left: 15%; animation-delay: 0s; }
+  .a2 { left: 80%; animation-delay: 2s; }
+  .a3 { left: 45%; animation-delay: 4s; }
+  @keyframes bajar {
+    0%   { top: -30px; transform: translateY(0) rotate(0deg); }
+    50%  { top: 40vh; transform: translateY(0) rotate(10deg); }
+    100% { top: -30px; transform: translateY(0) rotate(0deg); }
+  }
+
+  .tarjeta {
+    background: white;
+    border-radius: 20px;
+    padding: 45px 40px;
+    width: 340px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    text-align: center;
+    position: relative;
+    z-index: 10;
+    border-top: 5px solid #E23636;
+  }
+  .logo {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+  h1 {
+    color: #E23636;
+    font-size: 26px;
+    margin: 0 0 4px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  h1 span { color: #1E3A8A; }
+  p.sub {
+    color: #64748b;
+    font-size: 13px;
+    margin-bottom: 28px;
+  }
+  .campo { text-align: left; margin-bottom: 16px; }
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1E3A8A;
+    display: block;
+    margin-bottom: 5px;
+  }
+  input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+  }
+  input:focus {
+    outline: none;
+    border-color: #E23636;
+  }
+  button {
+    width: 100%;
+    padding: 13px;
+    background: linear-gradient(135deg, #E23636, #b91c1c);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: transform 0.15s;
+  }
+  button:hover { transform: translateY(-2px); }
+  button:active { transform: translateY(0); }
+  #mensaje {
+    margin-top: 14px;
+    font-size: 13px;
+    color: #E23636;
+    min-height: 16px;
+  }
+  .footer-nota {
+    margin-top: 20px;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+</style>
+</head>
+<body>
+
+  <svg class="telaraña tl1" viewBox="0 0 200 200"><g fill="none" stroke-width="1.5"><path d="M0,0 L200,100 M0,0 L150,200 M0,0 L80,200 M0,0 L0,200 M0,0 L200,0"/><path d="M0,0 Q30,30 60,20 T110,50 T160,40 T200,100"/><path d="M0,0 Q20,60 40,60 T80,120 T110,160 T150,200"/><path d="M0,0 Q15,90 30,100 T60,160 T80,200"/></g></svg>
+  <svg class="telaraña tl2" viewBox="0 0 200 200"><g fill="none" stroke-width="1.5"><path d="M0,0 L200,100 M0,0 L150,200 M0,0 L80,200 M0,0 L0,200 M0,0 L200,0"/><path d="M0,0 Q30,30 60,20 T110,50 T160,40 T200,100"/><path d="M0,0 Q20,60 40,60 T80,120 T110,160 T150,200"/><path d="M0,0 Q15,90 30,100 T60,160 T80,200"/></g></svg>
+
+  <div class="arania a1">🕷️</div>
+  <div class="arania a2">🕷️</div>
+  <div class="arania a3">🕷️</div>
+
+  <div class="tarjeta">
+    <div class="logo">🕸️</div>
+    <h1>Red<span>Spider</span> Bank</h1>
+    <p class="sub">Tu banco, tejido para ti</p>
+
+    <div class="campo">
+      <label>Número de cédula</label>
+      <input type="text" id="cedula" placeholder="Ej: 123456789">
+    </div>
+    <div class="campo">
+      <label>Clave</label>
+      <input type="password" id="clave" placeholder="••••••">
+    </div>
+
+    <button onclick="login()">Ingresar</button>
+    <div id="mensaje"></div>
+    <div class="footer-nota">Proyecto educativo — no es un banco real</div>
+  </div>
+
+<script>
+async function login() {
+  const cedula = document.getElementById('cedula').value;
+  const clave = document.getElementById('clave').value;
+  const msg = document.getElementById('mensaje');
+
+  if (!cedula || !clave) {
+    msg.innerText = 'Completa ambos campos';
+    return;
+  }
+
+  const form = new FormData();
+  form.append('cedula', cedula);
+  form.append('clave', clave);
+
+  try {
+    const res = await fetch('/login', { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (res.ok) {
+      window.location.href = `/static/cuenta.html?usuario_id=${data.usuario_id}`;
+    } else {
+      msg.innerText = data.detail || 'Error al ingresar';
+    }
+  } catch (e) {
+    msg.innerText = 'No se pudo conectar al servidor';
+  }
+}
+
+document.getElementById('clave').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') login();
+});
+</script>
+</body>
+</html>

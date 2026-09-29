@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RedSpider Bank - Admin</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #0a0f2e;
+    min-height: 100vh;
+  }
+  header {
+    background: linear-gradient(135deg, #1E3A8A, #0a0f2e);
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid #E23636;
+  }
+  header h2 { margin: 0; font-size: 20px; }
+  header h2 span { color: #ff6b6b; }
+
+  .contenedor {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 0 20px;
+  }
+
+  .login-admin {
+    background: white;
+    border-radius: 16px;
+    padding: 30px;
+    max-width: 320px;
+    margin: 80px auto;
+    text-align: center;
+  }
+  .login-admin input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+  }
+  .login-admin button {
+    width: 100%;
+    padding: 12px;
+    background: #1E3A8A;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  #panelAdmin { display: none; }
+
+  .credito-card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .info b { color: #1E3A8A; }
+  .info p { margin: 3px 0; font-size: 13px; color: #444; }
+  .estado {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .estado.pendiente { background: #fef3c7; color: #92400e; }
+  .estado.aprobado { background: #d1fae5; color: #065f46; }
+  .estado.rechazado { background: #fee2e2; color: #991b1b; }
+
+  .botones button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-left: 6px;
+    font-size: 13px;
+  }
+  .aprobar { background: #16a34a; color: white; }
+  .rechazar { background: #E23636; color: white; }
+
+  #mensaje { color: white; margin-bottom: 15px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h2>🕸️ Red<span>Spider</span> Bank — Panel Admin</h2>
+</header>
+
+<div class="contenedor">
+
+  <div class="login-admin" id="loginAdmin">
+    <h3>Acceso administrador</h3>
+    <input type="password" id="claveAdmin" placeholder="Clave de administrador">
+    <button onclick="entrarAdmin()">Entrar</button>
+    <p id="errorLogin" style="color:#E23636; font-size:12px;"></p>
+  </div>
+
+  <div id="panelAdmin">
+    <div id="mensaje"></div>
+    <div id="listaCreditos"></div>
+  </div>
+
+</div>
+
+<script>
+let claveGuardada = '';
+
+async function entrarAdmin() {
+  const clave = document.getElementById('claveAdmin').value;
+  const res = await fetch(`/admin/creditos?clave_admin=${encodeURIComponent(clave)}`);
+  if (res.ok) {
+    claveGuardada = clave;
+    document.getElementById('loginAdmin').style.display = 'none';
+    document.getElementById('panelAdmin').style.display = 'block';
+    cargarCreditos();
+  } else {
+    document.getElementById('errorLogin').innerText = 'Clave incorrecta';
+  }
+}
+
+async function cargarCreditos() {
+  const res = await fetch(`/admin/creditos?clave_admin=${encodeURIComponent(claveGuardada)}`);
+  const data = await res.json();
+  const lista = document.getElementById('listaCreditos');
+
+  if (data.length === 0) {
+    lista.innerHTML = '<p style="color:#94a3b8;">No hay créditos registrados</p>';
+    return;
+  }
+
+  lista.innerHTML = data.map(c => `
+    <div class="credito-card">
+      <div class="info">
+        <p><b>${c.nombre}</b> — Cédula: ${c.cedula}</p>
+        <p>Monto: $${c.monto.toLocaleString('es-CO')} — Plazo: ${c.plazo_meses} meses</p>
+      </div>
+      <span class="estado ${c.estado}">${c.estado}</span>
+      ${c.estado === 'pendiente' ? `
+        <div class="botones">
+          <button class="aprobar" onclick="accion(${c.id}, 'aprobar')">Aprobar</button>
+          <button class="rechazar" onclick="accion(${c.id}, 'rechazar')">Rechazar</button>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+async function accion(creditoId, tipo) {
+  const res = await fetch(`/admin/creditos/${tipo}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ credito_id: creditoId, clave_admin: claveGuardada })
+  });
+  const data = await res.json();
+  const mensaje = document.getElementById('mensaje');
+  if (res.ok) {
+    mensaje.style.color = '#4ade80';
+    mensaje.innerText = '✅ ' + data.mensaje;
+    cargarCreditos();
+  } else {
+    mensaje.style.color = '#f87171';
+    mensaje.innerText = '❌ ' + (data.detail || 'Error');
+  }
+}
+</script>
+</body>
+</html>
