@@ -1,35 +1,41 @@
+import os
 from fastapi import FastAPI, HTTPException, Form, Depends
-from fastapi.responses import HTMLResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
-from uuid import UUID, uuid4
+from uuid import uuid4
 from passlib.hash import bcrypt
 from psycopg2.pool import ThreadedConnectionPool
 from starlette.requests import Request
 
 app = FastAPI()
+
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-import os
-pool = ThreadedConnectionPool(2, 20, os.environ.get("DATABASE_URL", "postgres://postgres:banco123@localhost:5432/banco"))
-
+# Conexión a la base de datos (Compatible con Render y entorno local)
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgres://postgres:banco123@localhost:5432/banco")
+pool = ThreadedConnectionPool(2, 20, DATABASE_URL)
 
 def db():
     return pool.getconn()
-
 
 def liberar(conn):
     pool.putconn(conn)
 
 
+# ---------- RUTAS DE VISTAS (HTML) ----------
 @app.get("/", response_class=HTMLResponse)
 def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+@app.get("/registro", response_class=HTMLResponse)
+def registro_page(request: Request):
+    return templates.TemplateResponse("registro.html", {"request": request})
 
+
+# ---------- AUTENTICACIÓN Y REGISTRO ----------
 @app.post("/login")
 def login(cedula: str = Form(...), clave: str = Form(...)):
     conn = db()
@@ -43,23 +49,35 @@ def login(cedula: str = Form(...), clave: str = Form(...)):
     finally:
         liberar(conn)
 
-
 @app.post("/registro")
 def registro(cedula: str = Form(...), nombre: str = Form(...), clave: str = Form(...)):
     conn = db()
     try:
         with conn:
             with conn.cursor() as cur:
+                # Encriptar la contraseña antes de guardarla
                 clave_hash = bcrypt.hash(clave)
-                cur.execute("INSERT INTO usuarios (cedula, nombre, clave_hash) VALUES (%s,%s,%s) RETURNING id",
-                            (cedula, nombre, clave_hash))
+                
+                # Insertar el usuario en la base de datos
+                cur.execute(
+                    "INSERT INTO usuarios (cedula, nombre, clave_hash) VALUES (%s, %s, %s) RETURNING id",
+                    (cedula, nombre, clave_hash)
+                )
                 usuario_id = cur.fetchone()[0]
-                cur.execute("INSERT INTO cuentas (usuario_id, saldo) VALUES (%s, 0)", (usuario_id,))
-        return {"ok": True, "usuario_id": usuario_id}
+                
+                # Crear su cuenta bancaria asociada con saldo inicial en 0
+                cur.execute(
+                    "INSERT INTO cuentas (usuario_id, saldo) VALUES (%s, 0)", 
+                    (usuario_id,)
+                )
+                
+        # Redirigir al usuario al login principal (/) una vez registrado exitosamente
+        return RedirectResponse(url="/?registrado=true", status_code=303)
     finally:
         liberar(conn)
 
 
+# ---------- CUENTAS ----------
 @app.get("/cuenta/{usuario_id}")
 def ver_cuenta(usuario_id: int):
     conn = db()
@@ -76,6 +94,7 @@ def ver_cuenta(usuario_id: int):
         liberar(conn)
 
 
+# ---------- TRANSFERENCIAS ----------
 class Transferencia(BaseModel):
     origen: int
     destino: int
@@ -112,6 +131,7 @@ def transferir(t: Transferencia):
         liberar(conn)
 
 
+# ---------- CRÉDITOS ----------
 class SolicitudCredito(BaseModel):
     usuario_id: int
     monto: float = Field(gt=0)
@@ -147,7 +167,6 @@ def ver_creditos(usuario_id: int):
 
 # ---------- ADMIN ----------
 CLAVE_ADMIN = "admin123"
-
 
 class AccionCredito(BaseModel):
     credito_id: int
